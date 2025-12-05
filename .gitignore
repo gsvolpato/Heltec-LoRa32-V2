@@ -1,0 +1,43 @@
+# PlatformIO
+.pio/
+.vscode/
+.idea/
+
+# Build files
+*.o
+*.elf
+*.bin
+*.hex
+*.map
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+*.swp
+*.swo
+*~
+.project
+.cproject
+.settings/
+
+# Compiled files
+*.com
+*.class
+*.dll
+*.exe
+*.out
+*.log
+
