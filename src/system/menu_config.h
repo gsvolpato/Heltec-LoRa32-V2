@@ -12,6 +12,7 @@ extern int countWifiOptions;
 extern int countBluetoothOptions;
 extern int countLoraOptions;
 extern int countInfraredOptions;
+extern int countGPSOptions;
 extern int countSettingsOptions;
 extern const int itemPerScreen;
 
@@ -38,6 +39,7 @@ extern const char** wifiOptions; // Dynamically built: toggle + networks + Back
 extern const char* bluetoothOptions[];
 extern const char* loraOptions[];
 extern const char* infraredOptions[];
+extern const char* gpsOptions[];
 extern const char* settingsOptions[];
 
 // Function declarations

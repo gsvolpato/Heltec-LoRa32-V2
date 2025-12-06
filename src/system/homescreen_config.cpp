@@ -30,7 +30,24 @@ void homescreenMain() {
   display.clearDisplay();
   display.drawRoundRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 4, WHITE);
   
-  // Future: Add clock, battery percentage, etc. here
+  // Display battery percentage
+  display.setTextSize(1);
+  display.setTextColor(WHITE);
+  uint8_t batteryPercent = getBatteryPercentage();
+  
+  // Display battery percentage in top-right corner
+  char batteryStr[16];
+  snprintf(batteryStr, sizeof(batteryStr), "%d%%", batteryPercent);
+  
+  // Calculate text width to right-align
+  int16_t x, y;
+  uint16_t w, h;
+  display.getTextBounds(batteryStr, 0, 0, &x, &y, &w, &h);
+  int textX = SCREEN_WIDTH - w - 4; // 4 pixels from right edge
+  int textY = 4; // 4 pixels from top
+  
+  display.setCursor(textX, textY);
+  display.print(batteryStr);
   
   display.display();
 }

@@ -10,6 +10,7 @@
 #include "system/homescreen_config.h"
 #include "system/keyboard/keyboard_config.h"
 #include "system/lora/lora_config.h"
+#include "system/gps/gps_config.h"
 #include "apps/notepad/notepad_config.h"
 #include "apps/settings/keyboard_test.h"
 #include "system/freertos/tasks_config.h"
@@ -34,6 +35,10 @@ void setup() {
   // Disable LoRa
   Serial.println("[INIT] Disabling LoRa");
   disableLoRa();
+  
+  // Initialize GPS (disabled by default)
+  Serial.println("[INIT] Initializing GPS");
+  gpsSetup();
   
   // Initialize GPIOs
   Serial.println("[INIT] Initializing GPIOs");

@@ -8,6 +8,7 @@
 #include "keyboard_queue.h"
 #include "apps/settings/keyboard_test.h"
 #include "apps/notepad/notepad_config.h"
+#include "apps/gps/gps_app.h"
 #include "../wifi/wifi_config.h"
 
 // Forward declarations
@@ -181,6 +182,8 @@ void taskMenu(void* parameter) {
       keyboardTestMain();
     } else if (inNotepadMode) {
       notepadMain();
+    } else if (inGPSSelftestMode) {
+      gpsAppMain();
     } else if (inWiFiPasswordMode) {
       extern void wifiPasswordMain(int networkIndex);
       wifiPasswordMain(wifiPasswordNetworkIndex);
@@ -191,7 +194,7 @@ void taskMenu(void* parameter) {
         if (currentSubmenuList == wifiOptions) {
           handleMenu(subMenuIndex, countWifiOptions, currentSubmenuList, true);
         } else {
-        handleMenu(subMenuIndex, currentSubmenuCount, currentSubmenuList, true);
+          handleMenu(subMenuIndex, currentSubmenuCount, currentSubmenuList, true);
         }
       } else {
         handleMenu(mainMenuIndex, countMenu, menuList, false);

@@ -2,6 +2,8 @@
 #ifndef GPIOS_H
 #define GPIOS_H
 
+#include <stdint.h>
+
 // 5X4 Matrix Keypad Pins
 // Updated to free GPIO 1 and 3 for TX/RX use
 #define COL1_PIN        22  // Changed from 3 to free GPIO 3 for RX
@@ -43,6 +45,13 @@
 // VBAT Pin - Connected to voltage divider (R10=220K, R12=100K)
 // VBAT = ADC_reading * 3.2 (voltage divider ratio: 100/(220+100) = 0.3125)
 #define VBAT_PIN 13
+
+// GPS Module Pins (UART1)
+// GPIO 1: U0TXD / GPS RX (ESP32 TX to GPS RX)
+// GPIO 3: U0RXD / GPS TX (ESP32 RX from GPS TX)
+// VEXT: GPS VCC (controlled by VEXT_CONTROL_PIN)
+#define GPS_RX_PIN 3  // ESP32 RX pin (receives data from GPS TX)
+#define GPS_TX_PIN 1  // ESP32 TX pin (sends data to GPS RX)
 
 // ============================================================================
 // HEADER JP2 PIN DEFINITIONS (Left Header - 18 pins)
@@ -119,6 +128,8 @@
 
 void gpios_setup();
 bool readEnterButton(); // Returns true on button release (debounced)
+float readBatteryVoltage(); // Read battery voltage in volts
+uint8_t getBatteryPercentage(); // Get battery percentage (0-100)
 
 /*
  * SCHEMATIC VERIFIED PIN ASSIGNMENTS (WiFi LoRa 32 V2)

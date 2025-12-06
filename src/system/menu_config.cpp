@@ -5,6 +5,8 @@
 #include "apps/notepad/notepad_config.h"
 #include "apps/settings/keyboard_test.h"
 #include "apps/ir/ir_config.h"
+#include "apps/gps/gps_app.h"
+#include "system/gps/gps_config.h"
 #include "homescreen_config.h" // For homescreenSetup
 #include "freertos/keyboard_queue.h"
 #include "system/wifi/wifi_config.h"
@@ -18,7 +20,7 @@
 int mainMenuIndex = 0;
 int subMenuIndex = 0;
 bool inSubmenu = false;
-int countMenu = 3;
+int countMenu = 4;
 int countWifiOptions = 1; // Will be updated dynamically
 // WiFi options array (dynamically built: toggle + networks)
 char wifiOptionToggle[20] = "WiFi: OFF";
@@ -31,6 +33,7 @@ int lastRebuiltNetworkCount = -1; // Made non-static so wifi_config can reset it
 int countBluetoothOptions = 3;
 int countLoraOptions = 3;
 int countInfraredOptions = 3;
+int countGPSOptions = 1;
 int countSettingsOptions = 6;
 
 // Current submenu tracking
@@ -49,6 +52,7 @@ void wifiSetup();
 void bluetoothSetup();
 void loraSetup();
 void infraredSetup();
+void gpsAppSetup();
 void settingsSetup();
 void notepadSetup();
 
@@ -96,6 +100,7 @@ void rebuildWiFiMenuOptions() {
 FunctionPointer functionList[] = {
     infraredSetup,
     notepadSetup,
+    gpsAppSetup,
     settingsSetup
 };
 
@@ -167,6 +172,16 @@ void handleMenu(int& listIndex, int listCount, const char* listShow[], bool isSu
             inputWiFiPassword(networkIndex);
             return;
           }
+        } else if (currentSubmenuList == gpsOptions) {
+          if (listIndex == 0) {
+            // Selftest option selected
+            inGPSSelftestMode = true;
+            enableGPS();
+            Serial.println("[GPS] Selftest started");
+            return;
+          } else {
+            displayMenu(listCount, listShow, true);
+          }
         } else if (currentSubmenuList == settingsOptions) {
           if (listIndex == 0) {
             currentSubmenuList = wifiOptions;
@@ -203,7 +218,8 @@ void handleMenu(int& listIndex, int listCount, const char* listShow[], bool isSu
             switch(listIndex) {
               case 0: currentSubmenuList = infraredOptions; currentSubmenuCount = countInfraredOptions; break;
               case 1: currentSubmenuList = nullptr; currentSubmenuCount = 0; break;
-              case 2: currentSubmenuList = settingsOptions; currentSubmenuCount = countSettingsOptions; break;
+              case 2: currentSubmenuList = gpsOptions; currentSubmenuCount = countGPSOptions; break;
+              case 3: currentSubmenuList = settingsOptions; currentSubmenuCount = countSettingsOptions; break;
             }
             functionList[listIndex]();
           }
@@ -233,10 +249,11 @@ void handleMenu(int& listIndex, int listCount, const char* listShow[], bool isSu
   }
 
 // Define your menu items
-const char* menuList[] = {"Infrared", "Notepad", "Settings"};
+const char* menuList[] = {"Infrared", "Notepad", "GPS", "Settings"};
 const char* bluetoothOptions[] = {"Option 1", "Option 2", "Option 3"};
 const char* loraOptions[] = {"Option 1", "Option 2", "Option 3"};
 const char* infraredOptions[] = {"Option 1", "Option 2", "Option 3"};
+const char* gpsOptions[] = {"Selftest"};
 const char* settingsOptions[] = {"WiFi", "Bluetooth", "LoRa", "Keyboard Test", "Option 1", "Option 2"};
 
 

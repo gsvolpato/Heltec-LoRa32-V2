@@ -62,3 +62,66 @@ bool readEnterButton() {
   
   return false;
 }
+
+float readBatteryVoltage() {
+  // Note: GPIO 13 is also used for COL5_PIN
+  // Temporarily configure as analog input for battery reading
+  // Column pins are normally OUTPUT for keypad scanning
+  
+  // Configure pin as input for analog reading
+  pinMode(VBAT_PIN, INPUT);
+  
+  // Small delay to let pin stabilize after mode change
+  delay(10);
+  
+  // Read ADC value (ESP32 ADC is 12-bit: 0-4095)
+  // For better accuracy, take multiple samples and average
+  uint32_t adcSum = 0;
+  const int samples = 5;
+  for (int i = 0; i < samples; i++) {
+    adcSum += analogRead(VBAT_PIN);
+    delay(5);
+  }
+  uint32_t adcReading = adcSum / samples;
+  
+  // Restore pin configuration (back to OUTPUT for keypad column)
+  pinMode(VBAT_PIN, OUTPUT);
+  digitalWrite(VBAT_PIN, HIGH);
+  
+  // Convert ADC reading to battery voltage
+  // Formula from gpios.h: VBAT = (ADC_reading / 4095.0) * 3.3 * 3.2
+  // Voltage divider ratio: 100/(220+100) = 0.3125
+  // So: VBAT = (ADC_reading / 4095.0) * 3.3 / 0.3125 = (ADC_reading / 4095.0) * 3.3 * 3.2
+  float voltage = (adcReading / 4095.0) * 3.3 * 3.2;
+  
+  return voltage;
+}
+
+uint8_t getBatteryPercentage() {
+  float voltage = readBatteryVoltage();
+  
+  // Li-ion battery voltage range
+  // 3.0V = 0% (empty/cutoff)
+  // 4.2V = 100% (full)
+  const float minVoltage = 3.0;
+  const float maxVoltage = 4.2;
+  
+  // Clamp voltage to valid range
+  if (voltage < minVoltage) {
+    voltage = minVoltage;
+  } else if (voltage > maxVoltage) {
+    voltage = maxVoltage;
+  }
+  
+  // Calculate percentage (linear interpolation)
+  float percentage = ((voltage - minVoltage) / (maxVoltage - minVoltage)) * 100.0;
+  
+  // Clamp to 0-100 range
+  if (percentage < 0) {
+    percentage = 0;
+  } else if (percentage > 100) {
+    percentage = 100;
+  }
+  
+  return (uint8_t)percentage;
+}
