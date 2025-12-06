@@ -4,4 +4,3 @@
 void infraredSetup();
 
 #endif // IR_CONFIG_H
-

@@ -6,4 +6,3 @@ void infraredSetup() {
     subMenuIndex = 0;  // Reset cursor position
     displayMenu(countInfraredOptions, infraredOptions, true);
 }
-

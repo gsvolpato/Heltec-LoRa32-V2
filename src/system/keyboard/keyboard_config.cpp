@@ -19,28 +19,28 @@ const int colPins[5] = {COL1_PIN, COL2_PIN, COL3_PIN, COL4_PIN, COL5_PIN};
 // Phone-style text input mapping
 // Each key maps to a string of characters that cycle on repeated presses
 // Layout matches standard phone keypad:
-// 1: _, @, , (comma)
-// 2: A, B, C
-// 3: D, E, F
-// 4: G, H, I
-// 5: J, K, L
-// 6: M, N, O
-// 7: P, Q, R, S
-// 8: T, U, V
-// 9: W, X, Y, Z
+// 1: _, @, , (comma), 1
+// 2: A, B, C, 2
+// 3: D, E, F, 3
+// 4: G, H, I, 4
+// 5: J, K, L, 5
+// 6: M, N, O, 6
+// 7: P, Q, R, S, 7
+// 8: T, U, V, 8
+// 9: W, X, Y, Z, 9
 // *: _, (, )
-// 0: 0 (space on first press)
-// #: # (newline on first press)
+// 0: 0, space
+// #: #, newline
 const char* phoneKeyMap[12] = {
-  "_,@",     // Key '1': underscore, comma, @
-  "ABC",     // Key '2': A, B, C
-  "DEF",     // Key '3': D, E, F
-  "GHI",     // Key '4': G, H, I
-  "JKL",     // Key '5': J, K, L
-  "MNO",     // Key '6': M, N, O
-  "PQRS",    // Key '7': P, Q, R, S
-  "TUV",     // Key '8': T, U, V
-  "WXYZ",    // Key '9': W, X, Y, Z
+  "_,@1",    // Key '1': underscore, comma, @, 1
+  "ABC2",    // Key '2': A, B, C, 2
+  "DEF3",    // Key '3': D, E, F, 3
+  "GHI4",    // Key '4': G, H, I, 4
+  "JKL5",    // Key '5': J, K, L, 5
+  "MNO6",    // Key '6': M, N, O, 6
+  "PQRS7",   // Key '7': P, Q, R, S, 7
+  "TUV8",    // Key '8': T, U, V, 8
+  "WXYZ9",   // Key '9': W, X, Y, Z, 9
   "_()",     // Key '*': underscore, open paren, close paren
   "0 ",      // Key '0': 0, space
   "#\n"      // Key '#': #, newline

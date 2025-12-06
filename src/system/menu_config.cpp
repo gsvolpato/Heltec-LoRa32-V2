@@ -4,6 +4,7 @@
 #include "apps/settings/deepsleep_config.h"
 #include "apps/notepad/notepad_config.h"
 #include "apps/settings/keyboard_test.h"
+#include "apps/ir/ir_config.h"
 #include "homescreen_config.h" // For homescreenSetup
 #include "freertos/keyboard_queue.h"
 #include "system/wifi/wifi_config.h"

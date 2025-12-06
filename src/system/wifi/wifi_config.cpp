@@ -4,6 +4,7 @@
 #include "system/freertos/utils.h"
 #include "system/keyboard/keyboard_config.h"
 #include "system/freertos/keyboard_queue.h"
+#include "system/text_input/text_input.h"
 #include "../gpios.h"
 #include <WiFi.h>
 #include <Arduino.h>
@@ -18,15 +19,21 @@ static bool wifiEnabled = false;
 bool inWiFiPasswordMode = false;
 int wifiPasswordNetworkIndex = -1;
 
-// Password input buffer
+// Password input using text_input component
 #define WIFI_PASSWORD_BUFFER_SIZE 64
 static char wifiPasswordBuffer[WIFI_PASSWORD_BUFFER_SIZE];
-static int wifiPasswordCursor = 0;
-
-// Cursor blink state
-static unsigned long lastWiFiPasswordBlinkTime = 0;
-static bool wifiPasswordCursorVisible = true;
-static const unsigned long WIFI_PASSWORD_BLINK_INTERVAL = 500; // milliseconds
+static TextInputConfig wifiPasswordConfig = {
+  .buffer = wifiPasswordBuffer,
+  .bufferSize = WIFI_PASSWORD_BUFFER_SIZE,
+  .maxDisplayWidth = SCREEN_WIDTH - 16,
+  .startX = 8,
+  .startY = 35,
+  .allowNewlines = false,
+  .passwordMode = false,
+  .caseToggleEnabled = true,  // Enable shift (B key) for case toggle
+  .label = "Pwd: "
+};
+static TextInputState wifiPasswordState;
 
 
 // Scanned networks storage
@@ -218,32 +225,70 @@ void displayNetworkInfo(int networkIndex) {
 void wifiPasswordMain(int networkIndex) {
   // Note: Display is already locked by taskMenu, so we don't lock/unlock here
   
-  // Check for 'A' key to cancel
-  const char* key = getKeyFromQueue();
-  if (key != nullptr && strcmp(key, "A") == 0) {
-    Serial.println("[WIFI] Password input cancelled");
-    inWiFiPasswordMode = false;
-    wifiPasswordNetworkIndex = -1;
-    wifiPasswordCursor = 0;
-    wifiPasswordBuffer[0] = '\0';
-    resetPhoneStyleInput();
-    // Return to WiFi menu
-    extern void rebuildWiFiMenuOptions();
-    rebuildWiFiMenuOptions();
-    extern void displayMenu(int count, const char* list[], bool isSubmenu);
-    extern int countWifiOptions;
-    extern const char** wifiOptions;
-    displayMenu(countWifiOptions, wifiOptions, true);
-    return;
+  // Check for 'A' key (ESC/Exit) or '*' key to cancel - must check BEFORE textInputProcess
+  const char* cancelKey = getKeyFromQueue();
+  if (cancelKey != nullptr) {
+    if (strcmp(cancelKey, "A") == 0 || strcmp(cancelKey, "*") == 0) {
+      // Cancel password input (A = ESC/Exit, * = also exit)
+      Serial.println("[WIFI] Password input cancelled");
+      inWiFiPasswordMode = false;
+      wifiPasswordNetworkIndex = -1;
+      textInputClear(&wifiPasswordConfig, &wifiPasswordState);
+      // Return to WiFi menu
+      extern void rebuildWiFiMenuOptions();
+      rebuildWiFiMenuOptions();
+      extern void displayMenu(int count, const char* list[], bool isSubmenu);
+      extern int countWifiOptions;
+      extern const char** wifiOptions;
+      displayMenu(countWifiOptions, wifiOptions, true);
+      return;
+    }
+    
+    // If cancelKey was not A or *, it was consumed but we need to process it
+    // textInputProcess will get the next key from queue, so we lost this one
+    // Solution: process editing keys manually
+    if (strcmp(cancelKey, "B") == 0) {
+      // Backspace
+      int cursor = textInputGetCursor(&wifiPasswordState);
+      if (cursor > 0) {
+        const char* currentText = textInputGetText(&wifiPasswordConfig);
+        int textLen = strlen(currentText);
+        for (int i = cursor - 1; i < textLen; i++) {
+          wifiPasswordBuffer[i] = wifiPasswordBuffer[i + 1];
+        }
+        textInputSetCursor(&wifiPasswordState, cursor - 1);
+      }
+    } else if (strcmp(cancelKey, "C") == 0 && wifiPasswordConfig.caseToggleEnabled) {
+      // Shift toggle
+      wifiPasswordState.uppercaseMode = !wifiPasswordState.uppercaseMode;
+    } else if (strcmp(cancelKey, "LEFT") == 0) {
+      int cursor = textInputGetCursor(&wifiPasswordState);
+      if (cursor > 0) {
+        textInputSetCursor(&wifiPasswordState, cursor - 1);
+      }
+    } else if (strcmp(cancelKey, "RIGHT") == 0) {
+      int cursor = textInputGetCursor(&wifiPasswordState);
+      const char* currentText = textInputGetText(&wifiPasswordConfig);
+      int textLen = strlen(currentText);
+      if (cursor < textLen) {
+        textInputSetCursor(&wifiPasswordState, cursor + 1);
+      }
+    }
+    // For phone-style input keys (0-9, #), they are handled by getPhoneStyleChar()
+    // which doesn't use the queue, so they're fine
   }
+  
+  // Process text input (handles phone-style input and any remaining keys in queue)
+  textInputProcess(&wifiPasswordConfig, &wifiPasswordState);
   
   // Check for enter button to connect
   if (readEnterButton()) {
     Serial.println("[WIFI] Attempting to connect...");
     const char* ssid = getWiFiNetworkSSID(networkIndex);
+    const char* password = textInputGetText(&wifiPasswordConfig);
     if (ssid != nullptr && strlen(ssid) > 0) {
       // Connect to WiFi
-      bool connected = connectToWiFi(ssid, wifiPasswordBuffer);
+      bool connected = connectToWiFi(ssid, password);
       if (connected) {
         Serial.println("[WIFI] Connected successfully!");
         display.clearDisplay();
@@ -272,9 +317,7 @@ void wifiPasswordMain(int networkIndex) {
     // Return to WiFi menu
     inWiFiPasswordMode = false;
     wifiPasswordNetworkIndex = -1;
-    wifiPasswordCursor = 0;
-    wifiPasswordBuffer[0] = '\0';
-    resetPhoneStyleInput();
+    textInputClear(&wifiPasswordConfig, &wifiPasswordState);
     extern void rebuildWiFiMenuOptions();
     rebuildWiFiMenuOptions();
     extern void displayMenu(int count, const char* list[], bool isSubmenu);
@@ -283,25 +326,6 @@ void wifiPasswordMain(int networkIndex) {
     displayMenu(countWifiOptions, wifiOptions, true);
     return;
   }
-  
-  // Handle phone-style text input
-  char newChar = getPhoneStyleChar();
-  if (newChar != '\0') {
-    if (newChar == '\n') {
-      newChar = ' ';
-    }
-    
-    if (wifiPasswordCursor < WIFI_PASSWORD_BUFFER_SIZE - 1) {
-      wifiPasswordBuffer[wifiPasswordCursor] = newChar;
-      wifiPasswordCursor++;
-      wifiPasswordBuffer[wifiPasswordCursor] = '\0';
-      Serial.print("[WIFI] Password char: ");
-      Serial.println(newChar);
-    }
-  }
-  
-  // Get preview of character being typed
-  char previewChar = getPhoneStylePreview();
   
   // Get network info
   const char* ssid = getWiFiNetworkSSID(networkIndex);
@@ -325,26 +349,8 @@ void wifiPasswordMain(int networkIndex) {
   display.print(rssi);
   display.println(" dBm");
   
-  // Line 3: Password field with blinking cursor
-  display.setCursor(8, 35);
-  display.print("Password: ");
-  display.print(wifiPasswordBuffer);
-  
-  // Show preview if typing
-  if (previewChar != '\0') {
-    display.print(previewChar);
-  }
-  
-  // Blinking cursor
-  unsigned long currentTime = millis();
-  if (currentTime - lastWiFiPasswordBlinkTime > WIFI_PASSWORD_BLINK_INTERVAL) {
-    wifiPasswordCursorVisible = !wifiPasswordCursorVisible;
-    lastWiFiPasswordBlinkTime = currentTime;
-  }
-  
-  if (wifiPasswordCursorVisible) {
-    display.print("_");
-  }
+  // Line 3: Password field using text_input component
+  textInputRender(&wifiPasswordConfig, &wifiPasswordState);
   
   display.display();
 }
@@ -357,14 +363,10 @@ void inputWiFiPassword(int networkIndex) {
   Serial.print("[WIFI] Starting password input for network: ");
   Serial.println(getWiFiNetworkSSID(networkIndex));
   
-  // Initialize password input
+  // Initialize password input using text_input component
   inWiFiPasswordMode = true;
   wifiPasswordNetworkIndex = networkIndex;
-  wifiPasswordCursor = 0;
-  wifiPasswordBuffer[0] = '\0';
-  wifiPasswordCursorVisible = true;
-  lastWiFiPasswordBlinkTime = millis();
-  resetPhoneStyleInput();
+  textInputInit(&wifiPasswordConfig, &wifiPasswordState);
   
   // Clear keypad queue
   extern void clearKeyboardQueue();
